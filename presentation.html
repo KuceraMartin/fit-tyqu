@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Martin Kučera @Ematiq">
+  <title>Od předmětu BI-OOP k type-safe SQL queries ve Scale</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/theme/white.css" id="theme">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-light.min.css">
+  <link rel="stylesheet" href="custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Od předmětu BI-OOP k type-safe SQL queries ve
+Scale</h1>
+  <p class="author"><a href="mailto:martin@mkucera.cz">Martin Kučera</a>
+@<a href="https://www.ematiq.com/">Ematiq</a></p>
+  <p class="date">11. 12. 2023</p>
+</section>
+
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/sg.jpeg"></p>
+</div>
+</section>
+<section id="fit-anketa-funguje" class="slide level2">
+<h2>FIT anketa funguje</h2>
+</section>
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/qs.png" style="max-height: calc(80vh); margin: 0; position: relative; top: calc(-7vh)"></p>
+</div>
+</section>
+<section id="zkus-to-i-když-si-nevěříš" class="slide level2">
+<h2>Zkus to, i když si nevěříš</h2>
+</section>
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/bakala-rejection.png"></p>
+</div>
+</section>
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/bakala-2.png"></p>
+</div>
+</section>
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/eth.jpg"></p>
+</div>
+</section>
+<section id="neboj-se-zeptat" class="slide level2">
+<h2>Neboj se zeptat</h2>
+</section>
+<section class="slide level2">
+
+<div style="text-align: center">
+<p><img src="assets/epfl-scala.png"></p>
+</div>
+</section>
+<section id="type-safety" class="slide level2">
+<h2>Type safety</h2>
+<pre class="python"><code>def add_numbers(a, b):
+    return a + b</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="python"><code>result = add_numbers(5, &quot;10&quot;)
+print(result)</code></pre>
+<div class="fragment">
+<pre class="txt"><code>Traceback (most recent call last):
+  File &quot;/Users/martin/Documents/FIT prednaska/test.py&quot;, line 4, in &lt;module&gt;
+    result = add_numbers(5, &quot;10&quot;)
+             ^^^^^^^^^^^^^^^^^^^^
+  File &quot;/Users/martin/Documents/FIT prednaska/test.py&quot;, line 2, in add_numbers
+    return a + b
+           ~~^~~
+TypeError: unsupported operand type(s) for +: &#39;int&#39; and &#39;str&#39;</code></pre>
+</div>
+</section>
+<section class="slide level2">
+
+<pre class="java"><code>public class Calculator {
+
+    public static int addNumbers(int a, int b) {
+      return a + b;
+    }
+
+}</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="java"><code>Calculator.addNumbers(5, &quot;10&quot;);</code></pre>
+<pre class="txt"><code>Main.java:11: error: incompatible types: String cannot be converted to int
+    Calculator.addNumbers(5, &quot;10&quot;);</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>case class Account(id: String, currency: Currency)
+case class Agent(id: String, active: Boolean)
+
+class OrderService:
+  def placeOrder(accountId: String, agentId: String, ...): Unit</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>orderService.placeOrder(agent.id, account.id, ...)</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>case class AccountId(value: String)
+case class AgentId(value: String)
+
+case class Account(id: AccountId, currency: Currency)
+case class Agent(id: AgentId, active: Boolean)
+
+class OrderService:
+  def placeOrder(accountId: AccountId, agentId: AgentId, ...): Unit</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>orderService.placeOrder(agent.id, account.id, ...)</code></pre>
+<pre class="txt"><code>-- [E007] Type Mismatch Error: -------------------------------------------------
+1 |orderService.placeOrder(agent.id, account.id)
+  |                        ^^^^^^^^
+  |                        Found:    (agent.id : AgentId)
+  |                        Required: AccountId
+  |
+  | longer explanation available when compiling with `-explain`
+-- [E007] Type Mismatch Error: -------------------------------------------------
+1 |orderService.placeOrder(agent.id, account.id)
+  |                                  ^^^^^^^^^^
+  |                                  Found:    (account.id : AccountId)
+  |                                  Required: AgentId
+  |
+  | longer explanation available when compiling with `-explain`
+2 errors found</code></pre>
+</section>
+<section id="scala-crash-course" class="slide level2">
+<h2>Scala crash course</h2>
+<p>… like Java but better!</p>
+</section>
+<section id="type-inference" class="slide level2">
+<h2>Type inference</h2>
+<pre class="scala"><code>def addNumbers(a: Int, b: Int): Int = a + b
+
+val result: Int = addNumbers(5, 10)
+println(result)</code></pre>
+</section>
+<section id="type-inference-1" class="slide level2">
+<h2>Type inference</h2>
+<pre class="scala"><code>def addNumbers(a: Int, b: Int): Int = a + b
+
+val result = addNumbers(5, 10)
+println(result)</code></pre>
+</section>
+<section id="všechno-je-expression" class="slide level2">
+<h2>Všechno je expression</h2>
+<pre class="scala"><code>val number = 10
+val parity = if number % 2 == 0 then &quot;even&quot; else &quot;odd&quot;</code></pre>
+</section>
+<section id="všechno-je-expression-1" class="slide level2">
+<h2>Všechno je expression</h2>
+<pre class="scala"><code>val greeting = 
+  val hour = java.time.LocalTime.now().getHour
+  if hour &lt; 12 then
+    &quot;Good morning!&quot;
+  else
+    &quot;Good afternoon!&quot;</code></pre>
+</section>
+<section id="typová-hierarchie" class="slide level2">
+<h2>Typová hierarchie</h2>
+<p><img src="assets/type-hierarchy.svg"></p>
+</section>
+<section id="všechno-je-expression-2" class="slide level2">
+<h2>Všechno je expression</h2>
+<pre class="scala"><code>val s: String = readInput()
+val i: Int =
+  if s.forall(_.isDigit) then
+    s.toInt
+  else
+    throw new Exception(s&quot;$s is not an integer&quot;)</code></pre>
+</section>
+<section id="všechno-je-objekt" class="slide level2">
+<h2>Všechno je objekt</h2>
+<pre class="scala"><code>val number = -10
+println(number.sign) // -1</code></pre>
+<div class="fragment">
+<pre class="scala"><code>1 + 2 == 1.+(2)</code></pre>
+</div>
+</section>
+<section id="funkce-je-taky-objekt" class="slide level2">
+<h2>Funkce je taky objekt</h2>
+<pre class="scala"><code>val f: Function2[Int, Int, Int] =
+  (x: Int, y: Int) =&gt; x + y
+
+f(1, 2) == f.apply(1, 2)</code></pre>
+</section>
+<section id="všechno-je-funkce" class="slide level2">
+<h2>Všechno je funkce</h2>
+<pre class="scala"><code>val digitToText = Map(
+  0 -&gt; &quot;zero&quot;,
+  1 -&gt; &quot;one&quot;,
+  2 -&gt; &quot;two&quot;,
+  3 -&gt; &quot;three&quot;,
+)
+digitToText(1) // &quot;one&quot;
+
+val number = 123
+val str =
+  number               // 123
+    .toString          // &quot;123&quot;
+    .map(_.asDigit)    // ArraySeq(1, 2, 3)
+    .map(digitToText)  // ArraySeq(&quot;one&quot;, &quot;two&quot;, &quot;three&quot;)
+    .mkString(&quot; &quot;)     // &quot;one two three&quot;</code></pre>
+</section>
+<section id="singleton-objekty" class="slide level2">
+<h2>Singleton objekty</h2>
+<pre class="scala"><code>object Logger:
+  def log(msg: String): Unit =
+    println(msg)
+
+Logger.log(&quot;Hello, world!&quot;)</code></pre>
+</section>
+<section id="type-safety-a-databáze" class="slide level2">
+<h2>Type safety a databáze</h2>
+<pre class="scala"><code>import java.sql.*
+
+val connection = DriverManager.getConnection(&quot;jdbc:postgresql://...&quot;)
+val st = connection.createStatement()
+val rs = st.executeQuery(&quot;SELECT &#39;Hello, world!&#39;&quot;)</code></pre>
+</section>
+<section id="discogs-databáze" class="slide level2">
+<h2>Discogs databáze</h2>
+<div style="text-align: center">
+<p><img src="assets/er.svg"></p>
+</div>
+</section>
+<section id="problém-na-straně-db" class="slide level2">
+<h2>Problém na straně DB</h2>
+<pre class="scala"><code>st.executeQuery(&quot;SELECT * FROM artists WHERE name &gt;= 7&quot;)</code></pre>
+</section>
+<section id="problém-na-straně-klienta-1" class="slide level2">
+<h2>Problém na straně klienta #1</h2>
+<pre class="scala"><code>val rs = st.executeQuery(&quot;SELECT title, position FROM tracks&quot;);
+while rs.next() do
+  val title = rs.getString(&quot;title&quot;)
+  val pos = rs.getInt(&quot;position&quot;)
+  println(s&quot;$pos. $title&quot;)</code></pre>
+<div class="fragment">
+<pre class="txt"><code>org.postgresql.util.PSQLException: Bad value for type int : A
+  at org.postgresql.jdbc.PgResultSet.toInt(PgResultSet.java:3205)
+  at org.postgresql.jdbc.PgResultSet.getInt(PgResultSet.java:2422)
+  at org.postgresql.jdbc.PgResultSet.getInt(PgResultSet.java:2817)
+  ... 32 elided</code></pre>
+</div>
+</section>
+<section id="problém-na-straně-klienta-2" class="slide level2">
+<h2>Problém na straně klienta #2</h2>
+<pre class="scala"><code>val rs = st.executeQuery(&quot;SELECT title, position FROM tracks&quot;);
+while rs.next() do
+  val title = rs.getString(&quot;title&quot;)
+  val pos = rs.getString(&quot;position&quot;)
+  val duration = rs.getString(&quot;duration&quot;)
+  println(s&quot;$pos. $title ($duration)&quot;)</code></pre>
+<div class="fragment">
+<pre class="txt"><code>org.postgresql.util.PSQLException: The column name duration was not found in this ResultSet.
+  at org.postgresql.jdbc.PgResultSet.findColumn(PgResultSet.java:3033)
+  at org.postgresql.jdbc.PgResultSet.getString(PgResultSet.java:2888)
+  ... 32 elided</code></pre>
+</div>
+</section>
+<section id="co-bychom-chtěli" class="slide level2">
+<h2>Co bychom chtěli</h2>
+<pre class="scala"><code>val res = findAllTracks()
+  .filter: track =&gt;
+    track.release.id == 10 || track.release.id == 12
+  .filter(_.title.startsWith(&quot;Hello&quot;))
+  .sortBy(_.title)
+
+for track &lt;- res do
+  println(s&quot;${track.title} ${track.release.title}&quot;)</code></pre>
+</section>
+<section id="tyqu" class="slide level2">
+<h2>Tyqu</h2>
+<pre class="scala"><code>object Releases extends Table:
+  val id = Column[Int](primary = true)
+  val title = Column[String]()
+  val genre = Column[String]()
+  ...
+  lazy val tracks = OneToMany(Tracks, Tracks.release)
+
+
+object Tracks extends Table:
+  val id = Column[Int](primary = true)
+  val releaseId = Column[Int]()
+  val title = Column[String]()
+  val duration = Column[Int]()
+  ...
+  lazy val release = ManyToOne(Releases, releaseId)</code></pre>
+</section>
+<section id="tyqu-1" class="slide level2">
+<h2>Tyqu</h2>
+<pre class="scala"><code>val res = from(Tracks)
+  .filter: track =&gt;
+    track.release.id == 10 || track.release.id == 12
+  .filter(_.title.startsWith(&quot;Hello&quot;))
+  .sortBy(_.title)
+  .map: track =&gt;
+    (
+      track.title.as(&quot;track&quot;),
+      track.release.title.as(&quot;release&quot;),
+    )
+  .execute()
+
+for row &lt;- res do:
+  println(s&quot;${row.track} ${row.release}&quot;)</code></pre>
+</section>
+<section id="tyqu-demo" class="slide level2">
+<h2>Tyqu: Demo</h2>
+</section>
+<section id="scala-deep-dive" class="slide level2">
+<h2>Scala deep dive</h2>
+</section>
+<section id="structural-types" class="slide level2">
+<h2>Structural types</h2>
+<pre class="scala"><code>class Record(fields: Map[String, Any]) extends Selectable:
+  def selectDynamic(name: String): Any = fields(name)
+
+
+val person = Record(Map(
+    &quot;name&quot; -&gt; &quot;Emma&quot;,
+    &quot;age&quot; -&gt; 42,
+  )).asInstanceOf[Record &amp; { val name: String; val age: Int }]
+
+
+println(person.name)</code></pre>
+</section>
+<section id="metaprogramování" class="slide level2">
+<h2>Metaprogramování</h2>
+<div style="text-align: center">
+<p><img src="assets/metaprogramming.svg"></p>
+</div>
+</section>
+<section id="ast" class="slide level2">
+<h2>AST</h2>
+<pre class="scala"><code>1 + 2 * 3</code></pre>
+<div class="fragment">
+<div style="text-align: center">
+<p><img src="assets/ast.svg"></p>
+</div>
+</div>
+</section>
+<section id="inline-funkce" class="slide level2">
+<h2>Inline funkce</h2>
+<pre class="scala"><code>inline def perimeter(radius: Double): Double =
+  2 * 3.14 * radius</code></pre>
+<div class="fragment">
+<pre class="scala"><code>val p = perimeter(5.0)</code></pre>
+</div>
+<div class="fragment">
+<pre class="scala"><code>val p = 2 * 3.14 * radius</code></pre>
+</div>
+</section>
+<section id="makra" class="slide level2">
+<h2>Makra</h2>
+<pre class="scala"><code>import scala.quoted.*
+
+object Macro:
+  inline transparent def show(inline v: Any): Any =
+    ${ showImpl(&#39;v) }
+
+  private def showImpl(v: Expr[Any])(using Quotes): Expr[Any] =
+    import quotes.reflect.*
+    println(v.asTerm)
+    v</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>Macro.show(5.0)</code></pre>
+<div class="fragment">
+<pre><code>Literal(Constant(5.0))</code></pre>
+</div>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>val x = 1
+Macro.show(x + 2)</code></pre>
+<div class="fragment">
+<pre><code>Apply(Select(Ident(x),+),List(Literal(Constant(2))))</code></pre>
+</div>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>Macro.show(Map(
+  &quot;name&quot; -&gt; &quot;Emma&quot;,
+  &quot;age&quot; -&gt; 42,
+))</code></pre>
+<div class="fragment">
+<pre><code>Apply(TypeApply(Select(Ident(Map),apply),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)], TypeTree[OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))])),List(Typed(SeqLiteral(List(Apply(TypeApply(Select(Apply(TypeApply(Ident(ArrowAssoc),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(name)))),-&gt;),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(Emma)))), Apply(TypeApply(Select(Apply(TypeApply(Ident(ArrowAssoc),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(age)))),-&gt;),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int)])),List(Literal(Constant(42))))),TypeTree[AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Tuple2),List(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String), OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))))]),TypeTree[AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class &lt;repeated&gt;),List(AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Tuple2),List(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String), OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))))))])))</code></pre>
+</div>
+</section>
+<section id="tyqu-internals" class="slide level2">
+<h2>Tyqu: internals</h2>
+<pre class="scala"><code>class QueryBuilder[S &lt;: Scope](
+  scope: S,
+  from: FromRelation[?] | SubqueryRelation,
+  where: Expression[Boolean] = NoFilterExpression,
+  orderBy: List[OrderBy] = List.empty,
+):
+  def map[S2 &lt;: Scope](fn: S =&gt; S2): QueryBuilder[S2]
+  def filter(predicate: S =&gt; Expression[Boolean]): QueryBuilder[S]
+  def sortBy(fn: S =&gt; OrderBy | Tuple): QueryBuilder[S]
+  def execute()(using executor: QueryExecutor): Iterator[Result[S]]</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>transparent inline def map(fn: S =&gt; Tuple): QueryBuilder[?] =
+  val selection = fn(scope)
+  this
+    .copy(scope = TupleScope(selection))
+    .asInstanceOf[QueryBuilder[TupleScope &amp; { /* generated by macro */}]]</code></pre>
+</section>
+<section id="reklama" class="slide level2">
+<h2>Reklama</h2>
+</section>
+<section id="lang-talk-meetups" class="slide level2">
+<h2>#lang-talk meetups</h2>
+<p><a
+href="https://github.com/lang-talk/meetups">github.com/lang-talk/meetups</a></p>
+</section>
+<section id="milý-ježíšku" class="slide level2">
+<h2>Milý Ježíšku</h2>
+<p><a href="https://milyjezisku.eu/">www.milyjezisku.eu</a></p>
+</section>
+<section id="shrnutí" class="slide level2">
+<h2>Shrnutí</h2>
+<ul>
+<li>Neboj se zeptat</li>
+<li>Scala je cool</li>
+<li>Tyqu je cool</li>
+</ul>
+<p><a
+href="https://github.com/KuceraMartin/tyqu">github.com/KuceraMartin/tyqu</a></p>
+</section>
+<section id="backup" class="slide level2">
+<h2>Backup</h2>
+</section>
+<section id="tyqu-expression" class="slide level2">
+<h2>Tyqu: Expression</h2>
+<pre class="scala"><code>abstract class Expression[T]
+abstract class NamedExpression[T, Name &lt;: String &amp; Singleton] extends Expression[T]
+
+case class LiteralValue[T](value: T) extends Expression[T]
+case class ColumnValue[T, Name &lt;: String &amp; Singleton] extends NamedExpression[T, Name]
+
+case class IsNull(e: Expression[?]) extends Expression[Boolean]
+case class And(lhs: Expression[Boolean], rhs: Expression[Boolean]) extends Expression[Boolean]
+case class Plus[T1 &lt;: Numeric, T2 &lt;: Numeric](lhs: Expression[T1], rhs: Expression[T2]) extends Expression[T1 | T2]</code></pre>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^4//dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^4//plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^4//plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^4//plugin/zoom/zoom.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: true,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'none',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1200,
+
+        height: 675,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.14,
+
+        // reveal.js plugins
+        plugins: [
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script><script>hljs.highlightAll();</script>
+    </body>
+</html>
