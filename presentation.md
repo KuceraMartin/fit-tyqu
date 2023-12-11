@@ -21,7 +21,7 @@ slideNumber: false
 
 ---
 
-# Zkus to, i když si nevěříš
+# Zkus to, i když je malá šance na úspěch
 
 ---
 
