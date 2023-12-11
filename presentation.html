@@ -124,6 +124,12 @@ TypeError: unsupported operand type(s) for +: &#39;int&#39; and &#39;str&#39;</c
 <pre class="txt"><code>Main.java:11: error: incompatible types: String cannot be converted to int
     Calculator.addNumbers(5, &quot;10&quot;);</code></pre>
 </section>
+<section id="compile-time-vs.-runtime" class="slide level2">
+<h2>Compile time vs. runtime</h2>
+<div style="text-align: center">
+<p><img src="assets/metaprogramming.svg"></p>
+</div>
+</section>
 <section class="slide level2">
 
 <pre class="scala"><code>case class Account(id: String, currency: Currency)
@@ -359,6 +365,21 @@ for row &lt;- res do:
 <section id="tyqu-demo" class="slide level2">
 <h2>Tyqu: Demo</h2>
 </section>
+<section id="tyqu-internals" class="slide level2">
+<h2>Tyqu: internals</h2>
+<pre class="scala"><code>class QueryBuilder[S &lt;: Scope](
+  scope: S,
+  from: FromRelation[?] | SubqueryRelation,
+  where: Expression[Boolean] = NoFilterExpression,
+  orderBy: List[OrderBy] = List.empty,
+  ...
+):
+  def map[S2 &lt;: Scope](fn: S =&gt; S2): QueryBuilder[S2]
+  def filter(predicate: S =&gt; Expression[Boolean]): QueryBuilder[S]
+  def sortBy(fn: S =&gt; OrderBy): QueryBuilder[S]
+  def execute(): Iterator[Result[S]]
+  ...</code></pre>
+</section>
 <section id="scala-deep-dive" class="slide level2">
 <h2>Scala deep dive</h2>
 </section>
@@ -399,15 +420,24 @@ val person = Record(Map(
 
 println(person.name)</code></pre>
 </section>
-<section id="metaprogramování" class="slide level2">
-<h2>Metaprogramování</h2>
-<div style="text-align: center">
-<p><img src="assets/metaprogramming.svg"></p>
+<section id="tyqu-internals-1" class="slide level2">
+<h2>Tyqu: internals</h2>
+<pre class="scala"><code>val q = from(Releases) // QueryBuilder[TableScope[Releases.type]]</code></pre>
+<div class="fragment">
+<pre class="scala"><code>val q2 = from(Releases).map: release =&gt;
+  (
+    release.id,
+    release.title,
+  ) // QueryBuilder[TupleScope{val title: NamedExpression[String, &quot;title&quot;]; val id: NamedExpression[Int, &quot;id&quot;]}]</code></pre>
+</div>
+<div class="fragment">
+<pre class="scala"><code>val res = q2.execute() // Iterator[Result{val id: Int; val title: String}]</code></pre>
 </div>
 </section>
 <section id="ast" class="slide level2">
 <h2>AST</h2>
 <pre class="scala"><code>1 + 2 * 3</code></pre>
+<pre class="txt"><code>plus(1, multiply(2, 3))</code></pre>
 <div style="text-align: center">
 <p><img src="assets/ast.svg"></p>
 </div>
@@ -461,19 +491,6 @@ Macro.show(x + 2)</code></pre>
 <pre><code>Apply(TypeApply(Select(Ident(Map),apply),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)], TypeTree[OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))])),List(Typed(SeqLiteral(List(Apply(TypeApply(Select(Apply(TypeApply(Ident(ArrowAssoc),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(name)))),-&gt;),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(Emma)))), Apply(TypeApply(Select(Apply(TypeApply(Ident(ArrowAssoc),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String)])),List(Literal(Constant(age)))),-&gt;),List(TypeTree[TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int)])),List(Literal(Constant(42))))),TypeTree[AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Tuple2),List(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String), OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))))]),TypeTree[AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class &lt;repeated&gt;),List(AppliedType(TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Tuple2),List(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String), OrType(TypeRef(ThisType(TypeRef(NoPrefix,module class lang)),class String),TypeRef(ThisType(TypeRef(NoPrefix,module class scala)),class Int))))))])))</code></pre>
 </div>
 </section>
-<section id="tyqu-internals" class="slide level2">
-<h2>Tyqu: internals</h2>
-<pre class="scala"><code>class QueryBuilder[S &lt;: Scope](
-  scope: S,
-  from: FromRelation[?] | SubqueryRelation,
-  where: Expression[Boolean] = NoFilterExpression,
-  orderBy: List[OrderBy] = List.empty,
-):
-  def map[S2 &lt;: Scope](fn: S =&gt; S2): QueryBuilder[S2]
-  def filter(predicate: S =&gt; Expression[Boolean]): QueryBuilder[S]
-  def sortBy(fn: S =&gt; OrderBy): QueryBuilder[S]
-  def execute(): Iterator[Result[S]]</code></pre>
-</section>
 <section class="slide level2">
 
 <pre class="scala"><code>transparent inline def map[T &lt;: Tuple](fn: S =&gt; T): QueryBuilder[?] =
@@ -482,20 +499,19 @@ Macro.show(x + 2)</code></pre>
     .copy(scope = TupleScope(selection))
     .asInstanceOf[QueryBuilder[TupleScope &amp; { /* generated by macro */}]]</code></pre>
 </section>
-<section class="slide level2">
-
-<pre class="scala"><code>val q = from(Releases) // QueryBuilder[TableScope[Releases.type]]</code></pre>
-</section>
-<section class="slide level2">
-
-<pre class="scala"><code>val q2 = from(Releases).map: release =&gt;
-  (
-    release.id,
-    release.title,
-  ) // QueryBuilder[TupleScope{val title: NamedExpression[String, &quot;title&quot;]; val id: NamedExpression[Int, &quot;id&quot;]}]</code></pre>
-<div class="fragment">
-<pre class="scala"><code>val res = q2.execute() // Iterator[Result{val id: Int; val title: String}]</code></pre>
-</div>
+<section id="todo" class="slide level2">
+<h2>Todo</h2>
+<ul>
+<li>prepared queries</li>
+<li>explicit joins</li>
+<li>DML (insert, update, delete)</li>
+<li>single-row queries</li>
+<li>async</li>
+<li>make ready for customizations</li>
+<li>transactions</li>
+<li>generating: DDL from schema, schema from DDL</li>
+<li>migrations</li>
+</ul>
 </section>
 <section id="reklama" class="slide level2">
 <h2>Reklama</h2>
