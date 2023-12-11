@@ -1,4 +1,4 @@
-all: presentation.html presentation.pdf
+all: presentation.html
 
 %.html: %.md Makefile custom.css
 	docker run --rm --volume "`pwd`:/data" --user `id -u`:`id -g` pandoc/latex \

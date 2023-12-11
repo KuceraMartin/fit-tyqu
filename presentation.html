@@ -39,7 +39,8 @@
 Scale</h1>
   <p class="author"><a href="mailto:martin@mkucera.cz">Martin Kučera</a>
 @<a href="https://www.ematiq.com/">Ematiq</a></p>
-  <p class="date">11. 12. 2023</p>
+  <p class="date">11. 12. 2023<br><br>slidy: <a
+href="https://bit.ly/fit-tyqu">bit.ly/fit-tyqu</a></p>
 </section>
 
 <section class="slide level2">
@@ -185,11 +186,6 @@ println(result)</code></pre>
 </section>
 <section id="všechno-je-expression" class="slide level2">
 <h2>Všechno je expression</h2>
-<pre class="scala"><code>val number = 10
-val parity = if number % 2 == 0 then &quot;even&quot; else &quot;odd&quot;</code></pre>
-</section>
-<section id="všechno-je-expression-1" class="slide level2">
-<h2>Všechno je expression</h2>
 <pre class="scala"><code>val greeting = 
   val hour = java.time.LocalTime.now().getHour
   if hour &lt; 12 then
@@ -201,7 +197,7 @@ val parity = if number % 2 == 0 then &quot;even&quot; else &quot;odd&quot;</code
 <h2>Typová hierarchie</h2>
 <p><img src="assets/type-hierarchy.svg"></p>
 </section>
-<section id="všechno-je-expression-2" class="slide level2">
+<section id="všechno-je-expression-1" class="slide level2">
 <h2>Všechno je expression</h2>
 <pre class="scala"><code>val s: String = readInput()
 val i: Int =
@@ -251,6 +247,12 @@ val str =
 
 Logger.log(&quot;Hello, world!&quot;)</code></pre>
 </section>
+<section id="discogs-databáze" class="slide level2">
+<h2>Discogs databáze</h2>
+<div style="text-align: center">
+<p><img src="assets/er.svg"></p>
+</div>
+</section>
 <section id="type-safety-a-databáze" class="slide level2">
 <h2>Type safety a databáze</h2>
 <pre class="scala"><code>import java.sql.*
@@ -259,15 +261,24 @@ val connection = DriverManager.getConnection(&quot;jdbc:postgresql://...&quot;)
 val st = connection.createStatement()
 val rs = st.executeQuery(&quot;SELECT &#39;Hello, world!&#39;&quot;)</code></pre>
 </section>
-<section id="discogs-databáze" class="slide level2">
-<h2>Discogs databáze</h2>
-<div style="text-align: center">
-<p><img src="assets/er.svg"></p>
-</div>
-</section>
 <section id="problém-na-straně-db" class="slide level2">
 <h2>Problém na straně DB</h2>
 <pre class="scala"><code>st.executeQuery(&quot;SELECT * FROM artists WHERE name &gt;= 7&quot;)</code></pre>
+<div class="fragment">
+<pre class="txt"><code>org.postgresql.util.PSQLException: ERROR: operator does not exist: character varying &gt;= integer
+  Hint: No operator matches the given name and argument types. You might need to add explicit type casts.
+  Position: 34
+  at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2676)
+  at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:2366)
+  at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:356)
+  at org.postgresql.jdbc.PgStatement.executeInternal(PgStatement.java:496)
+  at org.postgresql.jdbc.PgStatement.execute(PgStatement.java:413)
+  at org.postgresql.jdbc.PgStatement.executeWithFlags(PgStatement.java:333)
+  at org.postgresql.jdbc.PgStatement.executeCachedSql(PgStatement.java:319)
+  at org.postgresql.jdbc.PgStatement.executeWithFlags(PgStatement.java:295)
+  at org.postgresql.jdbc.PgStatement.executeQuery(PgStatement.java:244)
+  ... 32 elided</code></pre>
+</div>
 </section>
 <section id="problém-na-straně-klienta-1" class="slide level2">
 <h2>Problém na straně klienta #1</h2>
@@ -357,11 +368,34 @@ for row &lt;- res do:
   def selectDynamic(name: String): Any = fields(name)
 
 
+
+
+
+
+
+</code></pre>
+</section>
+<section id="structural-types-1" class="slide level2">
+<h2>Structural types</h2>
+<pre class="scala"><code>class Record(fields: Map[String, Any]) extends Selectable:
+  def selectDynamic(name: String): Any = fields(name)
+
+val person = Record(Map(
+    &quot;name&quot; -&gt; &quot;Emma&quot;,
+    &quot;age&quot; -&gt; 42,
+  ))
+
+println(person.name)</code></pre>
+</section>
+<section id="structural-types-2" class="slide level2">
+<h2>Structural types</h2>
+<pre class="scala"><code>class Record(fields: Map[String, Any]) extends Selectable:
+  def selectDynamic(name: String): Any = fields(name)
+
 val person = Record(Map(
     &quot;name&quot; -&gt; &quot;Emma&quot;,
     &quot;age&quot; -&gt; 42,
   )).asInstanceOf[Record &amp; { val name: String; val age: Int }]
-
 
 println(person.name)</code></pre>
 </section>
@@ -374,10 +408,8 @@ println(person.name)</code></pre>
 <section id="ast" class="slide level2">
 <h2>AST</h2>
 <pre class="scala"><code>1 + 2 * 3</code></pre>
-<div class="fragment">
 <div style="text-align: center">
 <p><img src="assets/ast.svg"></p>
-</div>
 </div>
 </section>
 <section id="inline-funkce" class="slide level2">
@@ -439,16 +471,31 @@ Macro.show(x + 2)</code></pre>
 ):
   def map[S2 &lt;: Scope](fn: S =&gt; S2): QueryBuilder[S2]
   def filter(predicate: S =&gt; Expression[Boolean]): QueryBuilder[S]
-  def sortBy(fn: S =&gt; OrderBy | Tuple): QueryBuilder[S]
-  def execute()(using executor: QueryExecutor): Iterator[Result[S]]</code></pre>
+  def sortBy(fn: S =&gt; OrderBy): QueryBuilder[S]
+  def execute(): Iterator[Result[S]]</code></pre>
 </section>
 <section class="slide level2">
 
-<pre class="scala"><code>transparent inline def map(fn: S =&gt; Tuple): QueryBuilder[?] =
+<pre class="scala"><code>transparent inline def map[T &lt;: Tuple](fn: S =&gt; T): QueryBuilder[?] =
   val selection = fn(scope)
   this
     .copy(scope = TupleScope(selection))
     .asInstanceOf[QueryBuilder[TupleScope &amp; { /* generated by macro */}]]</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>val q = from(Releases) // QueryBuilder[TableScope[Releases.type]]</code></pre>
+</section>
+<section class="slide level2">
+
+<pre class="scala"><code>val q2 = from(Releases).map: release =&gt;
+  (
+    release.id,
+    release.title,
+  ) // QueryBuilder[TupleScope{val title: NamedExpression[String, &quot;title&quot;]; val id: NamedExpression[Int, &quot;id&quot;]}]</code></pre>
+<div class="fragment">
+<pre class="scala"><code>val res = q2.execute() // Iterator[Result{val id: Int; val title: String}]</code></pre>
+</div>
 </section>
 <section id="reklama" class="slide level2">
 <h2>Reklama</h2>
@@ -464,6 +511,10 @@ href="https://github.com/lang-talk/meetups">github.com/lang-talk/meetups</a></p>
 </section>
 <section id="shrnutí" class="slide level2">
 <h2>Shrnutí</h2>
+<div style="float: right; max-width: 30%; text-align: center">
+<p><img src="assets/qr.png" style="width: 100%; margin-top: -25%">
+slidy: <a href="https://bit.ly/fit-tyqu">bit.ly/fit-tyqu</a></p>
+</div>
 <ul>
 <li>Neboj se zeptat</li>
 <li>Scala je cool</li>
@@ -471,6 +522,9 @@ href="https://github.com/lang-talk/meetups">github.com/lang-talk/meetups</a></p>
 </ul>
 <p><a
 href="https://github.com/KuceraMartin/tyqu">github.com/KuceraMartin/tyqu</a></p>
+<p><a href="mailto:martin@mkucera.cz">martin@mkucera.cz</a></p>
+<p>IG <a href="https://www.instagram.com/kuceramartin/"><span
+class="citation" data-cites="kuceramartin">@kuceramartin</span></a></p>
 </section>
 <section id="backup" class="slide level2">
 <h2>Backup</h2>
@@ -520,7 +574,7 @@ case class Plus[T1 &lt;: Numeric, T2 &lt;: Numeric](lhs: Expression[T1], rhs: Ex
         progress: true,
 
         // Display the page number of the current slide
-        slideNumber: true,
+        slideNumber: false,
 
         // 'all', 'print', or 'speaker'
         showSlideNumber: 'all',
